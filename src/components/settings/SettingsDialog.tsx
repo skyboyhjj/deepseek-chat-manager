@@ -34,6 +34,7 @@ import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
+import { openSearch } from '../export/globalSearchState.js'
 import styles from './Settings.module.css'
 
 /**
@@ -105,6 +106,7 @@ const SettingsContent = () => {
             <>
               <ApiKeyField editor={apiKeyEditor} />
               <ImportHistory historyImport={historyImport} disabled={historyBusy} />
+              <SearchExport disabled={historyBusy} />
               <ExportHistory disabled={historyBusy} />
               <SettingCell
                 label={t('deleteAllSessions')}
@@ -507,6 +509,33 @@ const ImportHistory = ({
             }}
           />
         </>
+      }
+    />
+  )
+}
+
+/** 打开全局搜索导出弹窗（关闭设置弹窗后打开）。 */
+const SearchExport = ({ disabled }: { disabled: boolean }) => {
+  const t = useTranslate()
+  const empty = useChatStore((state) => state.sessions.length === 0)
+  return (
+    <SettingCell
+      label={t('searchExport')}
+      description={t('searchExportDescription')}
+      status={null}
+      action={
+        <Button
+          variant="outlined"
+          size="m"
+          className={styles.cellButton}
+          disabled={disabled || empty}
+          onClick={() => {
+            closeSettings()
+            openSearch()
+          }}
+        >
+          {t('searchExportOpen')}
+        </Button>
       }
     />
   )
