@@ -10,6 +10,12 @@
   }
 }
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   overflow: hidden;
   margin: 0;
@@ -47,7 +53,6 @@ body.change-theme *::after {
   html,
   body,
   #root {
-    height: 100%;
     overflow: hidden;
     overscroll-behavior-y: none;
   }
