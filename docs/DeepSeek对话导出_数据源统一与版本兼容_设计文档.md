@@ -29,7 +29,7 @@
 |---|---|---|
 | D1 | THINK 思考链是否纳入检索/统计 | **不纳入**。检索/统计只用用户+助手正文；THINK 单独存放、可导出、不进检索 |
 | D2 | 高于当前支持版本时 | **best-effort 尽力解析**，不拒绝，丢弃无法识别的新片段类型，保留正文与消息树 |
-| D3 | 标签配置 | 单一事实来源一份 `tag_map.json`，两侧共享 |
+| D3 | 标签配置 | 设计为单一事实来源 `tag_map.json`，实际未落地（标签=命中关键词直出） |
 
 ---
 
@@ -69,7 +69,7 @@ canonical 是内存模型，不做跨语言落盘（Python 离线批量、chat-d
 | `RESPONSE`（v3）/ `TEXT`（旧） | 两格式 | `text`（role=assistant） | 正文 |
 | `THINK` | 两格式 | `think` | 不进检索，见第九节 |
 | `FILE` | 两格式 | `attachments[]` | 图片/非图片附件，见第九节 |
-| `SEARCH` | 仅旧 | 丢弃 | v3 已废弃，旧格式实测 316 条且 `results` 为空 → 直接丢弃 |
+| `SEARCH` | 仅旧 | `TOOL_SEARCH` | chat-demo 侧映射为 `TOOL_SEARCH` 保留（见 legacy.ts），再归一为 `references[]` |
 | `TOOL_SEARCH` | 两格式 | `references[]`（kind=search） | 两格式字段不同（见第九节） |
 | `TOOL_OPEN` | 两格式 | `references[]`（kind=open_page） | 旧格式可能缺字段 |
 | `TOOL_FIND` | 两格式 | `references[]`（kind=find） | |
@@ -118,6 +118,8 @@ detect(input)
 ---
 
 ## 五、共享 tag-map
+
+> 注：本章 `tag_map.json` 方案**未落地**。实际 chat-demo 搜索导出中「主题标签」即「命中关键词」直出（无独立标签配置文件），详见源码核验报告 §5.1。以下为原始设计留档。
 
 单一事实来源一份 `tag_map.json`，由 Python 工具包现有 `config.py` 的 `KEYWORD_GROUPS` 抽出：
 
@@ -202,7 +204,7 @@ detect(input)
 | 类型 | 旧格式 | v3 格式 | 差异要点 |
 |---|---|---|---|
 | `FILE` | 486 条 | 有 | 旧：`{file_id, file_name, file_size}`，**无 is_image/export_path/尺寸**；v3：`{id, file_name, file_size, token_usage, inserted_at, export_path, is_image, width, height}` |
-| `SEARCH` | 316 条 | **无（已废弃）** | 旧独占，`results` 实测为空 → 直接丢弃 |
+| `SEARCH` | 316 条 | **无（已废弃）** | 旧独占；chat-demo 侧映射为 `TOOL_SEARCH` 保留（见 legacy.ts） |
 | `TOOL_SEARCH` | 810 条 | 有 | 旧结果仅 `{url, title}`；v3 多 `snippet/published_at/site_name/site_icon` + `queries/status` |
 | `TOOL_OPEN` | 2902 条 | 有 | 旧可能为空对象/缺 `url`；v3 有 `status/url/title/...` |
 | `TOOL_FIND` | 125 条 | 有 | 结构相近 |
@@ -278,7 +280,7 @@ CanonicalReference            # 搜索/打开/图搜/链接等引用来源
 
 | 编号 | 事项 | 结论 |
 |---|---|---|
-| E1 | 旧格式 `SEARCH`（316 条，`results` 实测为空） | 直接丢弃，不归一为 references |
+| E1 | 旧格式 `SEARCH`（316 条，`results` 实测为空） | chat-demo 侧映射为 `TOOL_SEARCH` 保留并归一为 references |
 | E2 | MD 导出图片 | 本体不落盘，仅占位 + 元数据 |
 | E3 | 脱敏开关默认值 | 默认「开」，剔除 URL / 站点名 / 发布时间 |
 | E4 | 图表数据文件（`.xlsx/.csv`） | 仅列元数据，不展开表格内容 |

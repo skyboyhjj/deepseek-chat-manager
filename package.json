@@ -1,13 +1,17 @@
 {
-  "name": "chat-demo",
+  "name": "deepseek-chat-manager",
   "version": "0.1.2",
-  "description": "基于 DeepSeek API 的静态聊天示例。",
+  "description": "DeepSeek 对话导出管理器：历史搜索、导出与旧版数据兼容导入。",
   "license": "MIT",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "rspack serve -c rspack.config.ts",
-    "build": "set NODE_ENV=production&& rspack build -c rspack.config.ts",
+    "build": "rspack build -c rspack.config.ts --mode production",
     "type": "tsc -p tsconfig.json",
     "lint": "oxlint src rspack.config.ts",
     "format": "oxfmt --write ."

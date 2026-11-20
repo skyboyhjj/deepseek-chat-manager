@@ -219,7 +219,30 @@ const parseConversation = (value: unknown): SessionFile | null => {
     // 片段无角色信号时按树结构交替推断；根默认 USER。
     const role: ChatRole =
       roleHint ?? (parentRole === 'ASSISTANT' ? 'USER' : parentRole === 'USER' ? 'ASSISTANT' : 'USER')
-    if ((parentRole !== null && role === parentRole) || (parentRole === null && role !== 'USER')) {
+    // 根必须是提问。
+    if (parentRole === null && role !== 'USER') {
+      return
+    }
+    const children = node.children
+      .filter((child) => nodes.has(child))
+      .sort((a, b) => numericId(a) - numericId(b))
+    // 同角色连发（如用户补问）：不新建消息，把片段合并进父消息，子节点继续挂到父消息下，
+    // 避免「丢弃该节点导致其后整枝消息一起丢失」。
+    if (parentRole !== null && role === parentRole && parentId !== null) {
+      const parentMessage = messages[parentId - 1]
+      if (parentMessage) {
+        parentMessage.fragments.push(...node.message.fragments)
+        if (node.message.thinkingEnabled) {
+          parentMessage.thinking_enabled = true
+        }
+        if (node.message.searchEnabled) {
+          parentMessage.search_enabled = true
+        }
+      }
+      assigned.set(key, parentId)
+      for (const child of children) {
+        visit(child, parentRole, parentId)
+      }
       return
     }
     sequence += 1
@@ -235,9 +258,6 @@ const parseConversation = (value: unknown): SessionFile | null => {
       inserted_at: node.message.insertedAt,
       fragments: node.message.fragments,
     })
-    const children = node.children
-      .filter((child) => nodes.has(child))
-      .sort((a, b) => numericId(a) - numericId(b))
     for (const child of children) {
       visit(child, role, sequence)
     }

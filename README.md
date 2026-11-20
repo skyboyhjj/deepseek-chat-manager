@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-This project is a fork of the official [chat-demo](https://github.com/deepseek-ai/chat-demo) with a focus on conversation search, export, and backward-compatible import of legacy data.
+This project is derived from the official [chat-demo](https://github.com/deepseek-ai/chat-demo) (an independent repository, not a GitHub fork) with a focus on conversation search, export, and backward-compatible import of legacy data.
 
 Clone this repository to run it locally; alternatively run `pnpm build` to produce `dist/` and deploy it to a static server or open `dist/index.html` directly. Importing/exporting conversation data requires no API key; enter your API key in Settings before your first chat.
 

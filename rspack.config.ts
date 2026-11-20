@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from '@rspack/cli'
 import { rspack, type Configuration } from '@rspack/core'
 
-const dev = process.env.NODE_ENV !== 'production'
 const targets = ['chrome >= 105', 'edge >= 105', 'safari >= 16', 'firefox >= 110']
 const root = path.dirname(fileURLToPath(import.meta.url))
 const { version } = JSON.parse(
@@ -21,12 +20,15 @@ type ConfigOptions = {
   apiOrigin?: string
   /** 开发服务器配置，支持本地接口代理 */
   devServer?: Configuration['devServer']
+  /** 是否为开发模式（由 CLI --mode 决定，避免依赖易被 shell 污染的 NODE_ENV） */
+  dev?: boolean
 }
 
 /** 创建构建配置，支持自定义 API 地址和开发服务器选项 */
 export const createConfig = ({
   apiOrigin = 'https://api.deepseek.com',
   devServer,
+  dev = true,
 }: ConfigOptions = {}): Configuration => ({
   mode: dev ? 'development' : 'production',
   entry: './src/main.tsx',
@@ -90,4 +92,6 @@ export const createConfig = ({
 })
 
 // eslint-disable-next-line import/no-default-export
-export default defineConfig(createConfig())
+export default defineConfig((_env, argv) =>
+  createConfig({ dev: (argv.mode ?? 'development') !== 'production' })
+)
