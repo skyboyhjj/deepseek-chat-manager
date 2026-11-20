@@ -177,6 +177,10 @@ const readDirectory = async (file: File): Promise<{ entries: Entry[]; offset: nu
   return { entries: entries.sort((a, b) => a.offset - b.offset), offset }
 }
 
+/** 只读取归档条目路径（不解压内容），用于在导入前判断格式版本。 */
+export const readPaths = async (file: File): Promise<string[]> =>
+  (await readDirectory(file)).entries.map((entry) => entry.path)
+
 const readEntryOffset = async (file: File, entry: Entry, boundary: number) => {
   if (entry.offset + 30 > boundary) {
     invalid()

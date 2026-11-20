@@ -3,12 +3,14 @@ import { BackupError, fail } from './errors.js'
 import { EXPORT_FORMAT_VERSION, type SessionFile, type SessionIndexEntry } from './format.js'
 import { INDEX_PATH, MANIFEST_PATH, USER_PATH, parseSessionPath, sessionFilesDir } from './paths.js'
 import { detectManifest, readSessionFile, readSessionIndex } from './schema.js'
+import { parseLegacyConversations } from './legacy.js'
 import { toLocalSession } from './toLocal.js'
 import {
   ArchiveError,
   isZipFile,
   readArchive,
   readEntry,
+  readPaths,
   skipEntry,
   type ArchiveEntry,
 } from './zipReader.js'
@@ -50,6 +52,50 @@ const readJson = async (entry: ArchiveEntry): Promise<unknown> => {
   }
 }
 
+/** 旧版归档的会话文件条目名（无 manifest.json）。 */
+const LEGACY_PATH = 'conversations.json'
+
+/** 判断是否为旧版归档：无 manifest.json 且含 conversations.json。 */
+const isLegacyArchive = async (file: File): Promise<boolean> => {
+  try {
+    const paths = await readPaths(file)
+    return !paths.includes(MANIFEST_PATH) && paths.includes(LEGACY_PATH)
+  } catch (error) {
+    throw error instanceof ArchiveError ? new BackupError('backupIncomplete') : error
+  }
+}
+
+/**
+ * 旧版导入：读 conversations.json，归一化为 v3 SessionFile 后复用 toLocalSession 管线。
+ * 旧版不含图片二进制，文件的 content（OCR/文本）不导入。
+ */
+const importLegacyArchive = async (file: File): Promise<void> => {
+  let conversations: unknown
+  try {
+    for await (const entry of readArchive(file)) {
+      if (entry.path === LEGACY_PATH) {
+        conversations = await readJson(entry)
+      } else {
+        await skipEntry(entry)
+      }
+    }
+  } catch (error) {
+    throw error instanceof ArchiveError ? new BackupError('backupIncomplete') : error
+  }
+  if (conversations === undefined) {
+    fail('backupUnrecognized')
+  }
+  const sessions = parseLegacyConversations(conversations)
+  const seen = new Set<string>()
+  for (const fileSession of sessions) {
+    if (seen.has(fileSession.id)) {
+      fail('backupIncomplete')
+    }
+    seen.add(fileSession.id)
+    await db.addStagingSession(toLocalSession(fileSession).session)
+  }
+}
+
 /**
  * 会话解析器注册表：export_format_version -> 会话 JSON 解析器。
  * DeepSeek 后续升级导出格式时，在此登记对应 parser，导入逻辑无需改动。
@@ -78,6 +124,10 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
   if (!(await isZipFile(file))) {
     fail('backupUnrecognized')
   }
+  // 旧版无 manifest.json，结构校验在 importLegacyArchive 中进行。
+  if (await isLegacyArchive(file)) {
+    return
+  }
   try {
     for await (const entry of readArchive(file)) {
       if (entry.path !== MANIFEST_PATH) {
@@ -101,6 +151,9 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
 export const importArchive = async (file: File): Promise<void> => {
   if (!(await isZipFile(file))) {
     fail('backupUnrecognized')
+  }
+  if (await isLegacyArchive(file)) {
+    return importLegacyArchive(file)
   }
   const imported = new Set<string>()
   const images = new Map<string, string>()
