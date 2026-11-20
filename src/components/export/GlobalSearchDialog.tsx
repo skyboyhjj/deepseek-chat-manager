@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
 import { searchAllSessions, type SearchOutcome } from '../../services/chat/globalSearch.js'
 import { downloadSearch } from '../../services/chat/searchExport.js'
@@ -25,6 +25,13 @@ export const GlobalSearchDialog = () => {
   const [end, setEnd] = useState('')
   const [busy, setBusy] = useState(false)
   const [outcome, setOutcome] = useState<SearchOutcome | null>(null)
+
+  // 关闭弹窗后重置 busy，避免「搜索中关闭」残留导致下次搜索按钮被禁用
+  useEffect(() => {
+    if (!open) {
+      setBusy(false)
+    }
+  }, [open])
 
   if (!open) {
     return null

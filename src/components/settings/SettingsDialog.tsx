@@ -35,6 +35,7 @@ import { showToast } from '../base/toastState.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
 import { openSearch } from '../export/globalSearchState.js'
+import { openSessionExport } from '../export/sessionExportState.js'
 import styles from './Settings.module.css'
 
 /**
@@ -107,6 +108,7 @@ const SettingsContent = () => {
               <ApiKeyField editor={apiKeyEditor} />
               <ImportHistory historyImport={historyImport} disabled={historyBusy} />
               <SearchExport disabled={historyBusy} />
+              <SessionExport disabled={historyBusy} />
               <ExportHistory disabled={historyBusy} />
               <SettingCell
                 label={t('deleteAllSessions')}
@@ -535,6 +537,33 @@ const SearchExport = ({ disabled }: { disabled: boolean }) => {
           }}
         >
           {t('searchExportOpen')}
+        </Button>
+      }
+    />
+  )
+}
+
+/** 打开会话选择性导出弹窗（勾选部分会话导出为 ZIP）。 */
+const SessionExport = ({ disabled }: { disabled: boolean }) => {
+  const t = useTranslate()
+  const empty = useChatStore((state) => state.sessions.length === 0)
+  return (
+    <SettingCell
+      label={t('sessionExport')}
+      description={t('sessionExportDescription')}
+      status={null}
+      action={
+        <Button
+          variant="outlined"
+          size="m"
+          className={styles.cellButton}
+          disabled={disabled || empty}
+          onClick={() => {
+            closeSettings()
+            openSessionExport()
+          }}
+        >
+          {t('sessionExportOpen')}
         </Button>
       }
     />

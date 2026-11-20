@@ -40,6 +40,34 @@ export const exportHistory = (): Promise<{ name: string; blob: Blob }> =>
   })
 
 /**
+ * 导出勾选的部分会话为 ZIP，格式与会话级全量导出一致，可再次导入。
+ * 只打包勾选的会话；图片原件随勾选会话一并写入。
+ */
+export const exportSessions = (ids: string[]): Promise<{ name: string; blob: Blob }> =>
+  enqueueBackup(async () => {
+    const { sessions, sessionCache } = useChatStore.getState()
+    const selected = new Set(ids)
+    async function* readSelected(): AsyncGenerator<Session> {
+      for (const summary of sessions) {
+        if (!selected.has(summary.id)) {
+          continue
+        }
+        const session = Object.hasOwn(sessionCache, summary.id)
+          ? sessionCache[summary.id]
+          : await db.loadSession(summary.id)
+        if (!session) {
+          throw new Error(`History session disappeared during export: ${summary.id}`)
+        }
+        yield { ...session, ...summary }
+      }
+    }
+    const { exportArchive } = await import('./history/exportArchive.js')
+    const now = new Date()
+    const blob = await exportArchive(readSelected())
+    return { name: `deepseek_data-${formatDate(now)}-selected-${ids.length}.zip`, blob }
+  })
+
+/**
  * 确认覆盖后调用：先检查 ZIP 格式与版本，校验失败时保留正在生成的回答；
  * 通过后从 ZIP 流式写入暂存，成功才替换原有会话与图片原件。返回导入的会话数。
  */
