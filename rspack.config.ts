@@ -92,6 +92,10 @@ export const createConfig = ({
 })
 
 // eslint-disable-next-line import/no-default-export
-export default defineConfig((_env, argv) =>
-  createConfig({ dev: (argv.mode ?? 'development') !== 'production' })
+export default defineConfig((env, argv) =>
+  createConfig({
+    // --mode 未提供时按子命令分流：build 缺省 production，serve 缺省 development。
+    // @rspack/cli 会把 RSPACK_SERVE / RSPACK_BUILD 注入到 config 函数首参 env。
+    dev: (argv.mode ?? (env.RSPACK_SERVE ? 'development' : 'production')) !== 'production',
+  })
 )

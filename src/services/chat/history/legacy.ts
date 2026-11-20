@@ -206,7 +206,7 @@ const parseConversation = (value: unknown): SessionFile | null => {
   const assigned = new Map<string, number>()
   let sequence = 0
 
-  // 前序重编号，保证父 id 小于子 id；只保留从 root 可达、角色交替合法的节点。
+  // 前序重编号，保证父 id 小于子 id；从 root 可达的节点全部保留，同角色连发合并进父消息。
   const visit = (key: string, parentRole: ChatRole | null, parentId: number | null): void => {
     if (assigned.has(key)) {
       return

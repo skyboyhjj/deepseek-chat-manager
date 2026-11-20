@@ -39,7 +39,10 @@ const toUser = (message: ChatMessage): UserMessage => ({
   id: String(message.id),
   role: 'user',
   createdAt: time(message.inserted_at),
-  content: message.fragments.map((item) => (item.type === 'REQUEST' ? item.content : '')).join(''),
+  content: message.fragments
+    .filter((item) => item.type === 'REQUEST')
+    .map((item) => item.content)
+    .join('\n'),
   files: message.fragments.flatMap((item) => (item.type === 'FILE' ? item.files.map(toFile) : [])),
 })
 
