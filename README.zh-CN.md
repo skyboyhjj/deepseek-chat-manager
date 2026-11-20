@@ -8,7 +8,7 @@
 
 ## 运行
 
-准备 Node.js 22.12+ 和 pnpm：
+准备 Node.js 20.19+（或 22.12+）和 pnpm：
 
 ```sh
 git clone https://github.com/skyboyhjj/deepseek-chat-manager.git

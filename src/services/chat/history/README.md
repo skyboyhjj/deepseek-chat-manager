@@ -24,7 +24,7 @@ chat_sessions/{session_id}_files/{file_id}_{file_name}  全部图片原件
 由 [legacy.ts](./legacy.ts) 将 `mapping` 树归一为 v3 `SessionFile` 后复用同一导入管线：
 
 - 重编号：沿 `root` 前序 DFS 重新分配连续整数 `id`，保证父 ID 小于子 ID；不可达的孤立节点丢弃。
-- 角色推断：fragment 含 `REQUEST` 判为用户，否则按树结构交替推断（根默认用户），避免仅含附件无正文的消息误判。
+- 角色推断：fragment 含 `REQUEST` 判为用户，否则按树结构交替推断（根默认用户），避免仅含附件无正文的消息误判；同角色连发（如用户补问）合并进父消息，避免整枝丢失。
 - 当前分支：沿 `root.children` 逐层选 ID 最大的子节点直到叶子，作为 `current_message_id`。
 - 时间归一：旧版 `+08:00` 偏移统一转为 `Z` 结尾的 UTC 时间。
 - 片段映射：`REQUEST`/`RESPONSE` 透传，`THINK` 补 `elapsed_secs: null`，`SEARCH` 映射为 `TOOL_SEARCH`（`published_at` 由 UNIX 时间戳转 ISO）。

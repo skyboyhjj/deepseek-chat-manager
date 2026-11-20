@@ -8,7 +8,7 @@ Clone this repository to run it locally; alternatively run `pnpm build` to produ
 
 ## Getting started
 
-Install Node.js 22.12+ and pnpm, then run:
+Install Node.js 20.19+ (or 22.12+) and pnpm, then run:
 
 ```sh
 git clone https://github.com/skyboyhjj/deepseek-chat-manager.git
