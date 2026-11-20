@@ -1,6 +1,7 @@
 .dialog {
   width: 720px;
   max-width: 90vw;
+  max-height: calc(100vh - 32px);
 }
 
 .main {
@@ -8,6 +9,8 @@
   flex-direction: column;
   gap: 16px;
   padding: 16px 20px;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .form {
