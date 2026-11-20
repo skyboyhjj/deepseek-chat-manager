@@ -1,8 +1,8 @@
 import * as db from '../db.js'
 import { BackupError, fail } from './errors.js'
-import type { SessionIndexEntry } from './format.js'
+import { EXPORT_FORMAT_VERSION, type SessionFile, type SessionIndexEntry } from './format.js'
 import { INDEX_PATH, MANIFEST_PATH, USER_PATH, parseSessionPath, sessionFilesDir } from './paths.js'
-import { checkManifest, readSessionFile, readSessionIndex } from './schema.js'
+import { detectManifest, readSessionFile, readSessionIndex } from './schema.js'
 import { toLocalSession } from './toLocal.js'
 import {
   ArchiveError,
@@ -51,6 +51,26 @@ const readJson = async (entry: ArchiveEntry): Promise<unknown> => {
 }
 
 /**
+ * 会话解析器注册表：export_format_version -> 会话 JSON 解析器。
+ * DeepSeek 后续升级导出格式时，在此登记对应 parser，导入逻辑无需改动。
+ */
+const SESSION_PARSERS: Record<number, (value: unknown) => SessionFile> = {
+  [EXPORT_FORMAT_VERSION]: readSessionFile,
+}
+
+/** 按版本解析单个会话；高于当前支持版本时按最近已知版本 best-effort 解析。 */
+const parseSessionFile = (version: number, value: unknown): SessionFile => {
+  const parser = SESSION_PARSERS[version]
+  if (parser) {
+    return parser(value)
+  }
+  if (version > EXPORT_FORMAT_VERSION) {
+    return readSessionFile(value)
+  }
+  return fail('backupInvalidVersion')
+}
+
+/**
  * 检查 ZIP 格式、首个 manifest 条目及格式版本。
  * 校验失败时保留正在生成的回答和现有暂存数据。
  */
@@ -63,7 +83,7 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
       if (entry.path !== MANIFEST_PATH) {
         fail('backupUnrecognized')
       }
-      checkManifest(await readJson(entry))
+      detectManifest(await readJson(entry))
       return
     }
   } catch (error) {
@@ -87,6 +107,7 @@ export const importArchive = async (file: File): Promise<void> => {
   /** 已保存的原件：文件 ID → MIME。同一图片出现在多个会话目录时只保存一次。 */
   const stored = new Map<string, string>()
   let manifest = false
+  let sourceVersion = EXPORT_FORMAT_VERSION
   let index: SessionIndexEntry[] | undefined
   let currentSessionId: string | undefined
 
@@ -109,13 +130,13 @@ export const importArchive = async (file: File): Promise<void> => {
         if (path !== MANIFEST_PATH) {
           fail('backupUnrecognized')
         }
-        checkManifest(await readJson(entry))
+        sourceVersion = detectManifest(await readJson(entry)).version
         manifest = true
       } else if (path === USER_PATH && !index && imported.size === 0) {
         // 账号信息（已脱敏）不导入；文件可能缺失。
         await skipEntry(entry)
       } else if (sessionId !== null && !index) {
-        const local = toLocalSession(readSessionFile(await readJson(entry)))
+        const local = toLocalSession(parseSessionFile(sourceVersion, await readJson(entry)))
         if (local.session.id !== sessionId || imported.has(sessionId)) {
           fail('backupIncomplete')
         }

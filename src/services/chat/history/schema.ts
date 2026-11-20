@@ -226,15 +226,19 @@ const sessionId: Read<string> = (value) => {
   return id && !/[/\\]/.test(id) && id !== '.' && id !== '..' ? id : invalid()
 }
 
-/** 版本号用于校验归档格式兼容性；字段结构由各字段的校验函数保证。 */
-export const checkManifest = (value: unknown): void => {
-  const version = record(value).export_format_version
-  if (typeof version === 'number' && version > EXPORT_FORMAT_VERSION) {
-    fail('backupNewerVersion')
-  }
-  if (version !== EXPORT_FORMAT_VERSION) {
+/** manifest 版本检测结果。 */
+export type ManifestInfo = { version: number; bestEffort: boolean }
+
+/**
+ * 检测 manifest 版本：低于当前支持版本或非法版本报错；高于当前支持版本进入 best-effort，
+ * 不拒绝（字段结构由各字段校验函数保证，未知片段在 readFragment 处丢弃）。
+ */
+export const detectManifest = (value: unknown): ManifestInfo => {
+  const version = record(value).export_format_version as number
+  if (!Number.isInteger(version) || version < EXPORT_FORMAT_VERSION) {
     fail('backupInvalidVersion')
   }
+  return { version, bestEffort: version > EXPORT_FORMAT_VERSION }
 }
 
 export const readSessionIndex: Read<SessionIndexEntry[]> = list((value) => {
