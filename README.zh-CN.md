@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-本项目在官方 [chat-demo](https://github.com/deepseek-ai/chat-demo) 基础上二次开发，重点增强历史对话的搜索、导出与旧版数据兼容导入能力。
+本项目在官方 [chat-demo](https://github.com/deepseek-ai/chat-demo) 源码基础上直接二次开发（fork 式修改核心代码，而非以插件/外挂方式增强），重点增强历史对话的搜索、导出与旧版数据兼容导入能力。二开改动落在 `custom` 分支，`main` 分支保持与上游同步，可随时回退到原始状态。
 
 克隆本项目后即可本地运行；也可执行 `pnpm build` 生成 `dist/`，部署到静态服务器或直接打开 `dist/index.html`。导入导出对话数据无需 API Key；首次进行会话（聊天）时，请在设置中填写 API Key。
 
@@ -40,7 +40,7 @@ pnpm build
 
 ## 数据
 
-API Key 和设置保存在浏览器 localStorage，会话及附件原件保存在 IndexedDB，本地数据按浏览器用户配置和站点源（origin）隔离。发送对话、上传附件和使用语音功能时，相应内容会提交给配置的 API 服务。
+API Key 以明文保存在浏览器 localStorage（仅用于请求你配置的 API 服务，不离开本机），其他设置同样保存在 localStorage；会话及附件原件保存在 IndexedDB，本地数据按浏览器用户配置和站点源（origin）隔离。发送对话、上传附件和使用语音功能时，相应内容会提交给配置的 API 服务。
 
 设置中的历史导入导出使用 ZIP 格式。导入会在确认并校验成功后替换全部本地会话和附件；导出包含会话与本地可用的图片原件，不包含 API Key、设置或非图片附件原件。格式与保留范围见[历史导入导出](src/services/chat/history/README.md)。导入同时兼容旧版本 DeepSeek 导出格式（无 `manifest.json`、单文件 `conversations.json`）。
 

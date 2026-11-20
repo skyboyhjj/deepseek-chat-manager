@@ -174,6 +174,7 @@ export const GlobalSearchDialog = () => {
               </span>
             ))}
           </div>
+          {hitCount > 0 && <div className={styles.privacyNotice}>{t('exportPrivacyNotice')}</div>}
           {hitCount === 0 ? (
             <div className={styles.empty}>{t('searchExportNoResult')}</div>
           ) : (

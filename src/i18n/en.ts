@@ -14,7 +14,7 @@ export const en = {
     'Chats or attachments have not been saved locally. Retry before closing this page.',
   sessionDeleteFailed: 'Unable to delete this chat. Please try again.',
   settings: 'Settings',
-  appName: 'API usage demo',
+  appName: 'DeepSeek Chat Manager',
   deleteSessionModalContentTitle: 'Delete chat?',
   deleteSessionWithFilesDescription:
     'This chat and its uploaded files will be permanently deleted and cannot be recovered. Delete this chat?',
@@ -124,8 +124,9 @@ export const en = {
   historyExportFailed: 'Export failed: {message}',
   exportAllLabel: 'Export all chats',
   historyExportDescription:
-    'Includes all chat history and locally stored images. Other attachments retain file details only. Your API Key is not included.',
+    'Includes all chat history and locally stored images. Other attachments retain file details only. Your API Key is not included. The exported file contains personal conversation content; please keep it safe.',
   exportAllDownload: 'Download',
+  exportPrivacyNotice: 'The exported file contains your personal conversation content. Please keep it safe.',
   searchExport: 'Search & export',
   searchExportDescription: 'Search all chats by keyword and export',
   searchExportOpen: 'Open',

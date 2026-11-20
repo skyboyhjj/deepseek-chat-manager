@@ -74,6 +74,12 @@
   color: var(--dsw-alias-label-primary, #1f2329);
 }
 
+.privacyNotice {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary, #8f959e);
+}
+
 .statItem {
   padding: 2px 8px;
   border-radius: 10px;

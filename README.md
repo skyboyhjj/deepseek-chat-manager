@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-This project is derived from the official [chat-demo](https://github.com/deepseek-ai/chat-demo) (an independent repository, not a GitHub fork) with a focus on conversation search, export, and backward-compatible import of legacy data.
+This project is derived from the official [chat-demo](https://github.com/deepseek-ai/chat-demo) (an independent repository, not a GitHub fork). It is a direct fork-style modification of the upstream source (not a plugin/extension approach), with a focus on conversation search, export, and backward-compatible import of legacy data. Customizations live on the `custom` branch, while `main` stays in sync with upstream for easy rollback.
 
 Clone this repository to run it locally; alternatively run `pnpm build` to produce `dist/` and deploy it to a static server or open `dist/index.html` directly. Importing/exporting conversation data requires no API key; enter your API key in Settings before your first chat.
 
@@ -40,7 +40,7 @@ The output is written to `dist/`. Deploy it to a static web server or open `dist
 
 ## Data and storage
 
-Your API key and settings are stored in the browser's localStorage. Conversations and original attachments are stored in IndexedDB. Local data is isolated by browser profile and site origin. Sending messages, uploading attachments, and using speech features sends the relevant content to the configured API service.
+Your API key is stored in plain text in the browser's localStorage (used only to call the API service you configure, and never leaves your device), along with other settings. Conversations and original attachments are stored in IndexedDB. Local data is isolated by browser profile and site origin. Sending messages, uploading attachments, and using speech features sends the relevant content to the configured API service.
 
 History import and export in Settings use ZIP archives. After confirmation and successful validation, importing replaces all local conversations and attachments. Exports include conversations and locally available original images, but exclude API keys, settings, and original non-image attachments. See the [history import/export documentation (Chinese)](src/services/chat/history/README.md) for the archive format and preservation details. Import also supports the legacy DeepSeek export format (no `manifest.json`, a single `conversations.json` file).
 
