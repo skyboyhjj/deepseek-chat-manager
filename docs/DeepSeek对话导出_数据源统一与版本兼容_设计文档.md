@@ -1,7 +1,7 @@
 # DeepSeek 对话导出 — 数据源统一与版本兼容 设计文档
 
-> 版本：v1.0
-> 状态：已评审（待实施）
+> 版本：v1.1
+> 状态：已评审（已实施）
 > 关联文档：[开发需求文档](./DeepSeek对话导出_开发需求文档.md)
 
 ---
@@ -101,6 +101,8 @@ detect(input)
 | `v1_parser` | 旧 `conversations.json` | 扁平遍历 `mapping` 全部 message，保持现有 863 条遍历口径 |
 | `v3_parser` | 当前 v3 ZIP | 读 `chat_sessions/*.json` + `chat_session_index.json` |
 | `v4/v5...` | 未来版本 | 按需新增，默认先走 best-effort |
+
+> **chat-demo 侧已实施**：旧版 ZIP 导入由 `src/services/chat/history/legacy.ts` 实现——识别 ZIP 内无 `manifest.json`、直接含 `conversations.json`；将 `mapping` 树前序 DFS 重编号（父 ID 恒小于子 ID）、丢弃不可达孤立节点、按树结构交替推断角色（根默认用户）、沿 `root.children` 选 ID 最大子节点链作为 `current_message_id`、时间 `+08:00→Z` 归一、`SEARCH→TOOL_SEARCH`、`files[]` 降级为元数据附件，归一为 v3 `SessionFile` 后复用 `toLocalSession` + `addStagingSession` 管线。
 
 ### 4.3 降级策略（核心）
 

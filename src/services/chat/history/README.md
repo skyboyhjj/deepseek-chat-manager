@@ -17,6 +17,19 @@ chat_sessions/{session_id}_files/{file_id}_{file_name}  全部图片原件
 
 可选字段允许缺省；时间接受以 `Z` 结尾、带可选小数秒的 UTC 时间。校验后只保留已定义字段，未知类型或无法解析的内容片段直接丢弃；容器和元数据字段不合法仍会导致导入失败。
 
+## 旧版本兼容导入
+
+除 v3 ZIP 外，导入还兼容旧版本 DeepSeek 导出的 ZIP（无 `manifest.json`，仅 `user.json` + `conversations.json`）。旧版 `conversations.json` 为会话数组，每项 `{ id, title, inserted_at, updated_at, mapping }`，消息树是 ChatGPT 风格的 `mapping`（含 `root` 虚拟节点，`root.message` 为 null）。
+
+由 [legacy.ts](./legacy.ts) 将 `mapping` 树归一为 v3 `SessionFile` 后复用同一导入管线：
+
+- 重编号：沿 `root` 前序 DFS 重新分配连续整数 `id`，保证父 ID 小于子 ID；不可达的孤立节点丢弃。
+- 角色推断：fragment 含 `REQUEST` 判为用户，否则按树结构交替推断（根默认用户），避免仅含附件无正文的消息误判。
+- 当前分支：沿 `root.children` 逐层选 ID 最大的子节点直到叶子，作为 `current_message_id`。
+- 时间归一：旧版 `+08:00` 偏移统一转为 `Z` 结尾的 UTC 时间。
+- 片段映射：`REQUEST`/`RESPONSE` 透传，`THINK` 补 `elapsed_secs: null`，`SEARCH` 映射为 `TOOL_SEARCH`（`published_at` 由 UNIX 时间戳转 ISO）。
+- 文件降级：旧版 `files[]` 无二进制本体与 `is_image`，降级为元数据附件（`export_path: null`、按扩展名推断图片），`content`（OCR/文本）丢弃。
+
 ## 导入与替换
 
 1. 用户确认覆盖后，先读取首个条目检查格式与版本；不符合时直接失败，不中止正在生成的回答。
@@ -25,7 +38,7 @@ chat_sessions/{session_id}_files/{file_id}_{file_name}  全部图片原件
 
 消息树以 `id` / `parent_id` 还原，父消息 ID 必须小于子消息 ID、角色交替、根为提问。`current_message_id` 决定当前分支；其他节点默认选中 ID 最大的子消息。缺失原件的附件保留文件名和大小，不进入后续请求；有原件的导入图片在首次用于请求时上传。
 
-导入时一次性转换为正式消息，正文、思考用时、模板标识、工具结果与阅读链接签名都保存在本地消息字段中，不保留原始消息副本。展示、请求与导出统一读取这份消息。只支持当前数据格式，不提供旧数据库迁移。
+导入时一次性转换为正式消息，正文、思考用时、模板标识、工具结果与阅读链接签名都保存在本地消息字段中，不保留原始消息副本。展示、请求与导出统一读取这份消息。
 
 ## 展示与上下文
 
@@ -55,6 +68,7 @@ chat_sessions/{session_id}_files/{file_id}_{file_name}  全部图片原件
 | [format.ts](./format.ts)、[schema.ts](./schema.ts)                             | 归档类型与字段校验             |
 | [toLocal.ts](./toLocal.ts)、[toArchive.ts](./toArchive.ts)                     | 归档与本地消息转换             |
 | [importArchive.ts](./importArchive.ts)、[exportArchive.ts](./exportArchive.ts) | 条目读取、暂存与归档组装       |
+| [legacy.ts](./legacy.ts)                                                     | 旧版 `conversations.json` 归一为 v3 会话 |
 | [zipReader.ts](./zipReader.ts)、[zipWriter.ts](./zipWriter.ts)                 | ZIP 读写及路径、大小、CRC 校验 |
 | [../backup.ts](../backup.ts)                                                   | 导入导出入口与串行队列         |
 
