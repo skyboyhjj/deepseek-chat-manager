@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-基于 DeepSeek API 的静态聊天示例，无需应用后端，浏览器直接请求配置的 API 服务。本项目在官方 [chat-demo](https://github.com/deepseek-ai/chat-demo) 基础上二次开发，重点增强历史对话的搜索、导出与旧版数据兼容导入能力。
+本项目在官方 [chat-demo](https://github.com/deepseek-ai/chat-demo) 基础上二次开发，重点增强历史对话的搜索、导出与旧版数据兼容导入能力。
 
 克隆本项目后即可本地运行；也可执行 `pnpm build` 生成 `dist/`，部署到静态服务器或直接打开 `dist/index.html`。导入导出对话数据无需 API Key；首次进行会话（聊天）时，请在设置中填写 API Key。
 
