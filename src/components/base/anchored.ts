@@ -129,6 +129,11 @@ export const useAnchoredPosition = <T extends HTMLElement, F extends HTMLElement
       return
     }
     const rect = anchor.getBoundingClientRect()
+    // 触发元素进入 display:none（如菜单打开后悬停离开导致操作按钮隐藏）时，
+    // 其矩形为全 0；此时保持浮层原位置，避免漂移到视口左上角。
+    if (rect.width === 0 && rect.height === 0) {
+      return
+    }
     const spaceAbove = rect.top - offset - VIEWPORT_PADDING
     const spaceBelow = window.innerHeight - rect.bottom - offset - VIEWPORT_PADDING
 
