@@ -1,6 +1,6 @@
 {
   "name": "deepseek-chat-manager",
-  "version": "0.1.3",
+  "version": "1.0.0",
   "description": "DeepSeek 对话导出管理器：历史搜索、导出与旧版数据兼容导入。",
   "license": "MIT",
   "private": true,
