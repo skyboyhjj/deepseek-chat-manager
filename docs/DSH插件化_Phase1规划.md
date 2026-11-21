@@ -1,7 +1,7 @@
 # DSH 插件化 Phase 1 规划
 
 > 目标：把 deepseek-chat-manager 的「旧版 ZIP 导入」能力，移植为 deepseek-harness（DSH）的一个插件。
-> 状态：规划已评审，待实现。
+> 状态：已实现（M1 解析 → M2 写入链路 → M3 服务接入，全部完成并通过验证）。
 
 ---
 
@@ -188,9 +188,9 @@ deps.projectionCache?.coldSnapshot(header, brandNumber<SessionLogOffset>(0), con
 
 ## 7. 里程碑
 
-- **M1**：解析器——旧版 `conversations.json` → `SessionEvent[]`（用真实旧版 ZIP 对拍验证）。
-- **M2**：写入链路——复用 `SessionPersistence` 把事件写入会话。
-- **M3**：服务接入——upload route 暴露导入入口。
+- **M1（✅ 完成）**：解析器——旧版 `conversations.json` → `SessionEvent[]`（真实旧版 ZIP 对拍验证，186 会话 / 1514 消息 / 5866 事件全绿）。
+- **M2（✅ 完成）**：写入链路——复用 `SessionPersistence` 把事件写入会话（`Session.create` 种子校验 + `create → append → flush → close`，186/186 通过）。
+- **M3（✅ 完成）**：服务接入——`DeepseekChatImportLegacyService` 服务注册 + upload route + fflate 解压 `conversations.json`（端到端 186 会话 imported、0 skipped、5866 事件、`tsc --build` exit 0）。
 
 ## 8. 参考文件清单（DSH 侧关键路径）
 
@@ -202,3 +202,57 @@ deps.projectionCache?.coldSnapshot(header, brandNumber<SessionLogOffset>(0), con
 | JSONL 持久化实现 | `packages/session/session-persistence-jsonl/src/index.ts`、`format.ts` |
 | 会话格式 catalog | `packages/session/session-format/src/types.ts` |
 | **照抄参照（写入链路）** | `packages/experimental/deepseek-chat-import/src/{conversation,importer,index}.ts` |
+
+---
+
+## 9. 实现总结（Phase 1 实际交付）
+
+包位置：`packages/experimental/deepseek-chat-import-legacy/`（`@deepseek-ai/dsh-deepseek-chat-import-legacy`）。
+
+### 9.1 实际文件清单（较规划新增了 6 个文件）
+
+| 文件 | 里程碑 | 职责 |
+| :--- | :--- | :--- |
+| `src/format.ts` | M1 | 旧版 `mapping` 树 → 线性消息序列（DFS 先序展平、孤立节点丢弃、同角色折叠、角色推断） |
+| `src/runtime.ts` | M1 | 本地 DSH 运行时等价实现（brandString/brandNumber/normalizeSessionTitle 等，仅 `import type`） |
+| `src/conversation.ts` | M1 | `convertConversation`：线性消息 → `ConvertedConversation { title, createdAt, events }` + `LogBuilder` |
+| `src/importer.ts` | M2/M3 | `writeSession`（照抄参照包）+ `importLegacyConversations`/`importLegacyExport` 编排 |
+| `src/archive.ts` | M3 | `parseLegacyArchive`：fflate `unzipSync` → `conversations.json` → JSON 校验 |
+| `src/protocol.ts` | M3 | `UPLOAD_PATH` / `UPLOAD_ROUTE` 路由常量 |
+| `src/types.ts` | M3 | wire 类型 + `RemoteErrorDetailsMap` 增强（`deepseekChatImportLegacy/owner-only`） |
+| `src/upload.ts` | M3 | `createUploadRoute`、NDJSON 流式应答、`readBounded` 限流、`ImportClaim` 单槽 |
+| `src/index.ts` | M3 | `DeepseekChatImportLegacyService`：`static inject=['typert','connection','sessionPersistence','workspaceRegistry']`、`Config`、`@Remote limits()`、upload route 注册/卸载、`claim()` |
+| `package.json` | M3 | 依赖/peerDeps/devDeps（加 `dsh-typert-protocol`、`schemastery`、`fflate`） |
+| `tsconfig.host.json` | M3 | project reference：vendor 三跳、packages 两跳（修正 M2 遗留错误） |
+
+### 9.2 写入链路（照抄参照包，未改动语义）
+
+```
+Session.create(id, events, header)     // 种子校验（与 fromRestore 同套不变量）
+→ persistence.create(header, { signal })
+→ handle.append(events)
+→ handle.flush()
+→ handle.close()
+→ projectionCache.coldSnapshot(header, 0, events)   // 可选
+```
+
+### 9.3 验证结果
+
+| 验证项 | 结果 |
+| :--- | :--- |
+| M1 解析对拍 | 186 会话 / 1514 消息 / 5866 事件，事件序列/角色推断/搜索片段映射与新版链路对齐 |
+| M2 种子校验 | 186/186 全部通过，mock persistence 端到端 5866 事件 |
+| M3 端到端 | imported=186、skipped=0、created=186、appended=5866、snapshots=186、attached=186 |
+| 类型检查 | `pnpm exec tsc --build` exit 0 |
+
+---
+
+## 10. 经验教训
+
+1. **运行时验证 ≠ 类型验证**：M1 用 `tsx`（esbuild，只转译不查类型）验证通过，但 `tsc --build` 才暴露出 `format.ts` 折叠逻辑对 `readonly LegacyFragment[]` 调 `.push` 的类型错误。两者都要跑。
+2. **`tsx` 支持 tsconfig `paths`**：从 repo 根 `pnpm exec tsx <script>`，`@deepseek-ai/*` 按根 `tsconfig.json` 的 paths 解析到源码 `src/`（不依赖构建产物），是 M2/M3 运行时验证的关键手段。
+3. **tsconfig project reference 路径规则**：vendor 包在 repo 根用 `../../../vendor/<name>`（三跳），`packages/*` 用 `../../<package>`（两跳）。M2 曾把 references 全部写成三跳（指向 repo 根，错误），M3 已修正。
+4. **pnpm 11 的 `verifyDepsBeforeRun`**：`pnpm exec` 前预检查会因 lockfile 过期失败（`ERR_PNPM_OUTDATED_LOCKFILE`）；新增 workspace 依赖后须 `pnpm install --no-frozen-lockfile` 更新 lockfile。
+5. **`readonly` 折叠模式**：公开类型保持 `readonly`（消费方契约），内部折叠用可变类型（`MutableLinearMessage`）原地追加，公开契约不变、内部可写。
+6. **大批量并行 Write 新文件会被权限系统拒绝**（`5100004 target_not_pending`），新建多文件时逐个顺序 Write 更稳。
+7. **照抄参照包但按里程碑裁剪**：M3 精简掉参照包的 `maxEntryBytes`、client 端、icon.svg/locale/cordis.patch.yml/docs（非 M3 范围），不做过度工程化。
