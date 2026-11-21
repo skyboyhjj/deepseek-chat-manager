@@ -1,11 +1,13 @@
 import clsx from 'clsx'
 import { useRef, useState, type ReactNode } from 'react'
 import {
+  IconCheckOutline16,
   IconDarkOutline16,
   IconDataOutline16,
   IconDownloadOutline16,
   IconFollowsystemOutline16,
   IconLightOutline16,
+  IconSearchOutline16,
   IconSettingsOutline16,
   IconUploadOutline14,
 } from '../base/icons.js'
@@ -536,6 +538,7 @@ const SearchExport = ({ disabled }: { disabled: boolean }) => {
             openSearch()
           }}
         >
+          <IconSearchOutline16 />
           {t('searchExportOpen')}
         </Button>
       }
@@ -563,6 +566,7 @@ const SessionExport = ({ disabled }: { disabled: boolean }) => {
             openSessionExport()
           }}
         >
+          <IconCheckOutline16 />
           {t('sessionExportOpen')}
         </Button>
       }
